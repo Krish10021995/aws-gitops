@@ -1,0 +1,98 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.15.8
+      - name: fmt
+        run: terraform fmt -recursive -check
+      - name: init + validate
+        run: |
+          cd terraform/envs/dev
+          terraform init -input=false -backend=false
+          terraform validate
+
+  gitops-manifests:
+    runs-on: ubuntu-latest
+    env:
+      KUSTOMIZE_VERSION: v5.5.0
+      KUBECONFORM_VERSION: v0.8.0
+    steps:
+      - uses: actions/checkout@v5
+      - name: install kustomize
+        run: |
+          curl -sL "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize/${KUSTOMIZE_VERSION}/kustomize_${KUSTOMIZE_VERSION}_linux_amd64.tar.gz" | tar -xz -C /usr/local/bin
+      - name: install kubeconform
+        run: |
+          curl -sL "https://github.com/yannh/kubeconform/releases/download/${KUBECONFORM_VERSION}/kubeconform-linux-amd64.tar.gz" | tar -xz -C /usr/local/bin
+      - name: build + validate overlays
+        run: |
+          set -euo pipefail
+          for d in gitops/apps gitops/apps/api gitops/apps/worker gitops/apps/web gitops/app-infra gitops/argocd; do
+            echo ">> $d"
+            kustomize build "$d" | kubeconform -strict -ignore-missing-schemas -summary
+          done
+
+  apps-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        app: [api, worker]
+    defaults:
+      run:
+        working-directory: apps/${{ matrix.app }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: apps/${{ matrix.app }}/requirements-dev.txt
+      - name: install
+        run: |
+          python -m venv .venv
+          ./.venv/bin/pip install -r requirements-dev.txt
+      - name: lint
+        run: ./.venv/bin/ruff check .
+      - name: test
+        run: ./.venv/bin/pytest -q
+
+  docker-build-and-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: docker/setup-buildx-action@v3
+      - name: build images
+        run: |
+          docker buildx build -q -t demo-api:ci apps/api
+          docker buildx build -q -t demo-worker:ci apps/worker
+          docker buildx build -q -t demo-web:ci apps/web
+      - name: smoke test api
+        run: |
+          docker run -d --name api -p 8000:8000 demo-api:ci
+          for i in $(seq 1 20); do curl -sf http://127.0.0.1:8000/health && break; sleep 1; done
+          curl -sf http://127.0.0.1:8000/health
+      - name: smoke test worker
+        run: |
+          docker run -d --name worker -p 8080:8080 demo-worker:ci
+          for i in $(seq 1 20); do curl -sf http://127.0.0.1:8080/healthz && break; sleep 1; done
+          curl -sf http://127.0.0.1:8080/healthz
+      - name: smoke test web
+        run: |
+          docker run -d --name web -p 8081:8080 demo-web:ci
+          for i in $(seq 1 20); do curl -sf http://127.0.0.1:8081/healthz && break; sleep 1; done
+          curl -sf http://127.0.0.1:8081/healthz

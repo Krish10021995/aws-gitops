@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>aws-gitops demo</title>
+  <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@2/css/pico.min.css" />
+</head>
+<body>
+  <main class="container">
+    <h1>aws-gitops demo</h1>
+    <p>FastAPI + Postgres (RDS) + worker, installed by <strong>Argo CD</strong> on Amazon EKS.</p>
+
+    <section>
+      <h2>Create an item</h2>
+      <form id="create-form">
+        <label>
+          Title
+          <input id="title" name="title" required maxlength="200" />
+        </label>
+        <label>
+          Description
+          <input id="description" name="description" maxlength="2000" />
+        </label>
+        <button type="submit">Submit</button>
+      </form>
+    </section>
+
+    <section>
+      <h2>Items (<span id="count">0</span>)</h2>
+      <table>
+        <thead>
+          <tr><th>id</th><th>title</th><th>status</th><th>created</th></tr>
+        </thead>
+        <tbody id="items"></tbody>
+      </table>
+    </section>
+  </main>
+
+  <script>
+    async function loadItems() {
+      try {
+        const res = await fetch('/api/items');
+        const items = await res.json();
+        document.getElementById('count').textContent = items.length;
+        const tbody = document.getElementById('items');
+        tbody.replaceChildren();
+        for (const it of items) {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td>${it.id}</td><td>${it.title}</td><td>${it.status}</td><td>${it.created_at || ''}</td>`;
+          tbody.appendChild(tr);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    document.getElementById('create-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const payload = {
+        title: document.getElementById('title').value,
+        description: document.getElementById('description').value,
+      };
+      const res = await fetch('/api/items', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (res.ok) {
+        document.getElementById('create-form').reset();
+        loadItems();
+      }
+    });
+
+    loadItems();
+    setInterval(loadItems, 5000);
+  </script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+region              = "eu-west-1"
+environment         = "dev"
+cluster_name        = "gitops-demo"
+cluster_version     = "1.31"
+vpc_cidr            = "10.0.0.0/16"
+availability_zones  = ["eu-west-1a", "eu-west-1b"]
+node_instance_types = ["t3.medium"]
+node_min_size       = 1
+node_max_size       = 3
+
+db_instance_class = "db.t4g.micro"
+db_name           = "demoapp"
+db_username       = "demoapp"
+# In real usage pass this via TF_VAR_db_password, not as a plaintext file.
+db_password = "ChangeMe123!"
+
+ecr_services = ["api", "worker", "web"]
+
+# Leave empty to skip ingress-nginx (ALB ingress is the default path).
+acme_email = ""

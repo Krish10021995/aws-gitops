@@ -1,0 +1,77 @@
+name: CD - Infrastructure
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "terraform/**"
+      - ".github/workflows/cd-infra.yml"
+
+concurrency:
+  group: cd-infra
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    if: secrets.AWS_ROLE_TO_ASSUME != ''
+    steps:
+      - uses: actions/checkout@v5
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.15.8
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+          role-duration-seconds: 1200
+      - name: init
+        run: |
+          cd terraform/envs/dev
+          terraform init -input=false
+      - name: plan
+        id: plan
+        run: |
+          cd terraform/envs/dev
+          terraform plan -out=tfplan -input=false
+        continue-on-error: false
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tfplan
+          path: terraform/envs/dev/tfplan
+          retention-days: 1
+
+  apply:
+    runs-on: ubuntu-latest
+    needs: plan
+    if: secrets.AWS_ROLE_TO_ASSUME != ''
+    steps:
+      - uses: actions/checkout@v5
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.15.8
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+          role-duration-seconds: 1200
+      - uses: actions/download-artifact@v4
+        with:
+          name: tfplan
+          path: terraform/envs/dev
+      - name: init
+        run: |
+          cd terraform/envs/dev
+          terraform init -input=false
+      - name: apply
+        run: |
+          cd terraform/envs/dev
+          terraform apply -auto-approve tfplan
+
+  skipped:
+    runs-on: ubuntu-latest
+    if: secrets.AWS_ROLE_TO_ASSUME == ''
+    steps:
+      - name: infra cd disabled
+        run: echo "Infra CD is disabled. Set AWS_ROLE_TO_ASSUME and AWS_REGION secrets (OIDC) to allow terraform apply on main."
