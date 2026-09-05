@@ -33,7 +33,7 @@ jobs:
         if: steps.check.outputs.enabled == 'true'
         with:
           terraform_version: 1.15.8
-      - uses: aws-actions/configure-aws-credentials@v4
+      - uses: aws-actions/configure-aws-credentials@v6
         if: steps.check.outputs.enabled == 'true'
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
