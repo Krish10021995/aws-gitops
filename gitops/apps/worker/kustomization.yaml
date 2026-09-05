@@ -1,9 +1,9 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  - deployment.yaml
-  - service.yaml
+- deployment.yaml
+- service.yaml
 images:
-  - name: worker
-    newName: worker
-    newTag: latest
+- name: worker
+  newName: ghcr.io/krish10021995/aws-gitops-worker
+  newTag: 300d5bb194a73fc1aa09aca0c0252802b4cc9e50

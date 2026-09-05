@@ -1,11 +1,11 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  - deployment.yaml
-  - service.yaml
-  - hpa.yaml
-  - ingress.yaml
+- deployment.yaml
+- service.yaml
+- hpa.yaml
+- ingress.yaml
 images:
-  - name: web
-    newName: web
-    newTag: latest
+- name: web
+  newName: ghcr.io/krish10021995/aws-gitops-web
+  newTag: 300d5bb194a73fc1aa09aca0c0252802b4cc9e50

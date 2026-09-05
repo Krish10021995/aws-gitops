@@ -6,5 +6,5 @@ resources:
 - hpa.yaml
 images:
 - name: api
-  newName: api
-  newTag: latest
+  newName: ghcr.io/krish10021995/aws-gitops-api
+  newTag: 300d5bb194a73fc1aa09aca0c0252802b4cc9e50
