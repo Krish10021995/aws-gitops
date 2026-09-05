@@ -93,6 +93,6 @@ jobs:
           curl -sf http://127.0.0.1:8080/healthz
       - name: smoke test web
         run: |
-          docker run -d --name web -p 8081:8080 demo-web:ci
+          docker run -d --name web --add-host api:127.0.0.1 -p 8081:8080 demo-web:ci
           for i in $(seq 1 20); do curl -sf http://127.0.0.1:8081/healthz && break; sleep 1; done
           curl -sf http://127.0.0.1:8081/healthz
