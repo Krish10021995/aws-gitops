@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import Depends, FastAPI
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -7,10 +9,15 @@ from api.schemas import ItemCreate, ItemRead
 
 app = FastAPI(title="demo-api", version="0.1.0")
 
+logger = logging.getLogger("api")
+
 
 @app.on_event("startup")
 def on_startup() -> None:
-    init_db()
+    try:
+        init_db()
+    except Exception:
+        logger.warning("init_db failed (DB not ready yet); API stays up for readiness checks")
 
 
 def get_db():
