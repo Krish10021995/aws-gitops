@@ -6,4 +6,4 @@ resources:
 images:
 - name: worker
   newName: ghcr.io/krish10021995/aws-gitops-worker
-  newTag: 300d5bb194a73fc1aa09aca0c0252802b4cc9e50
+  newTag: 64d72fdffddf0119b698dfb1b76234067a7c747b
