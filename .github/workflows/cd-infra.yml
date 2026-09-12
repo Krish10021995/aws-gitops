@@ -27,7 +27,7 @@ jobs:
         if: steps.check.outputs.enabled == 'false'
         run: echo "Infra CD is disabled. Set AWS_ROLE_TO_ASSUME and AWS_REGION secrets (OIDC) to run terraform plan/apply on main."
 
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         if: steps.check.outputs.enabled == 'true'
       - uses: hashicorp/setup-terraform@v4
         if: steps.check.outputs.enabled == 'true'
